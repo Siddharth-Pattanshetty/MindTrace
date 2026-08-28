@@ -2,20 +2,23 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_user
 from app.models.domain import User, Diagnosis, Exam
-from app.schemas.domain import DiagnosisResponse
+from app.schemas.diagnosis import DiagnosisResponse
 
 router = APIRouter()
 
-@router.get("/{exam_id}", response_model=DiagnosisResponse)
-def get_diagnosis_by_exam(exam_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    diagnosis = db.query(Diagnosis).filter(Diagnosis.exam_id == exam_id).first()
+@router.get("/{exam_id_or_diagnosis_id}", response_model=DiagnosisResponse)
+def get_diagnosis(exam_id_or_diagnosis_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Try finding by diagnosis_id first, then fallback to exam_id
+    diagnosis = db.query(Diagnosis).filter(Diagnosis.id == exam_id_or_diagnosis_id).first()
     if not diagnosis:
-        # Fallback create diagnosis if not pre-existing
-        exam = db.query(Exam).filter(Exam.id == exam_id).first()
+        diagnosis = db.query(Diagnosis).filter(Diagnosis.exam_id == exam_id_or_diagnosis_id).first()
+
+    if not diagnosis:
+        exam = db.query(Exam).filter(Exam.id == exam_id_or_diagnosis_id).first()
         if not exam:
-            raise HTTPException(status_code=404, detail="Exam not found")
+            raise HTTPException(status_code=404, detail="Diagnosis or Exam not found")
         diagnosis = Diagnosis(
-            exam_id=exam_id,
+            exam_id=exam.id,
             user_id=current_user.id,
             root_cause_title="Weak Algebraic Manipulation",
             confidence=0.91,
@@ -40,7 +43,7 @@ def get_diagnosis_by_exam(exam_id: int, db: Session = Depends(get_db), current_u
 
 @router.get("/{exam_id}/root-causes")
 def get_root_causes(exam_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    diagnosis = get_diagnosis_by_exam(exam_id, db, current_user)
+    diagnosis = get_diagnosis(exam_id, db, current_user)
     return {
         "primary_root_cause": diagnosis["root_cause_title"],
         "confidence": diagnosis["confidence"],

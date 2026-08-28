@@ -1,15 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-import os
-import shutil
 
 from app.api.deps import get_db, get_current_user
-from app.models.domain import User, Exam, Question, StudentAnswer, Evaluation, ErrorItem, Diagnosis, Concept, MasteryHistory
-from app.schemas.domain import ExamResponse, QuestionResponse
-from app.ai.document_processor import document_processor
-from app.ai.sympy_verifier import detect_detailed_error
-from app.diagnostics.root_cause_engine import root_cause_engine
+from app.models.domain import User, Exam, Question, Evaluation, ErrorItem, Diagnosis
+from app.schemas.exam import ExamResponse
+from app.schemas.question import QuestionResponse
+from app.schemas.diagnosis import DiagnosisResponse
+from app.services.exam_service import exam_service
+from app.services.diagnosis_service import diagnosis_service
 
 router = APIRouter()
 
@@ -22,132 +21,32 @@ def upload_exam(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    upload_dir = "uploads"
-    os.makedirs(upload_dir, exist_ok=True)
-    file_path = None
-    
-    if file:
-        file_path = os.path.join(upload_dir, file.filename)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-
-    exam = Exam(
-        user_id=current_user.id,
-        title=title,
-        subject=subject,
-        file_path=file_path,
-        status="PROCESSING",
-        score=0.0,
-        max_score=100.0
-    )
-    db.add(exam)
-    db.commit()
-    db.refresh(exam)
-
-    # Process document (extract questions and student answers)
-    parsed_questions = document_processor.process_document(file_path, raw_text)
-    
-    total_score = 0.0
-    evaluation_records = []
-
-    for q_data in parsed_questions:
-        q_obj = Question(
-            exam_id=exam.id,
-            question_number=q_data["question_number"],
-            text=q_data["text"],
-            expected_answer=q_data["expected_answer"],
-            max_marks=q_data.get("max_marks", 10.0)
-        )
-        db.add(q_obj)
-        db.commit()
-        db.refresh(q_obj)
-
-        s_ans = StudentAnswer(
-            exam_id=exam.id,
-            question_id=q_obj.id,
-            user_id=current_user.id,
-            student_raw_text=q_data["student_answer"],
-            parsed_expression=q_data["student_answer"]
-        )
-        db.add(s_ans)
-        db.commit()
-        db.refresh(s_ans)
-
-        # Evaluate answer using SymPy & detailed verifier
-        eval_res = detect_detailed_error(q_data["student_answer"], q_data["expected_answer"], q_data["concept_code"])
-        
-        evaluation = Evaluation(
-            question_id=q_obj.id,
-            student_answer_id=s_ans.id,
-            score=eval_res["score"],
-            max_score=q_obj.max_marks,
-            is_correct=eval_res["is_correct"],
-            sympy_verified=eval_res["sympy_verified"]
-        )
-        db.add(evaluation)
-        db.commit()
-        db.refresh(evaluation)
-
-        total_score += eval_res["score"]
-
-        err_item = None
-        if eval_res.get("error"):
-            err_data = eval_res["error"]
-            err_item = ErrorItem(
-                evaluation_id=evaluation.id,
-                question_id=q_obj.id,
-                error_type=err_data["error_type"],
-                explanation=err_data["explanation"],
-                confidence=err_data["confidence"],
-                evidence=err_data["evidence"]
-            )
-            db.add(err_item)
-            db.commit()
-
-        evaluation_records.append({
-            "question_number": q_obj.question_number,
-            "is_correct": eval_res["is_correct"],
-            "score": eval_res["score"],
-            "concept": q_data["concept_code"],
-            "error": eval_res.get("error")
-        })
-
-    exam.score = total_score
-    exam.status = "COMPLETED"
-    db.commit()
-    db.refresh(exam)
-
-    # Perform Root-Cause Analysis
-    diag_data = root_cause_engine.diagnose_exam_errors(evaluation_records)
-    
-    diagnosis = Diagnosis(
-        exam_id=exam.id,
-        user_id=current_user.id,
-        root_cause_title=diag_data["root_cause"],
-        confidence=diag_data["confidence"],
-        evidence_json=diag_data["evidence"],
-        summary=diag_data["summary"]
-    )
-    db.add(diagnosis)
-    db.commit()
-
-    # Track mastery update
-    concept_obj = db.query(Concept).filter(Concept.name == "Algebraic Manipulation").first()
-    if not concept_obj:
-        concept_obj = Concept(code="MANIP", name="Algebraic Manipulation", category="Algebra")
-        db.add(concept_obj)
-        db.commit()
-
-    mh = MasteryHistory(
-        user_id=current_user.id,
-        concept_id=concept_obj.id,
-        mastery_score=48.0,
-        change_reason=f"Diagnosed from {exam.title}"
-    )
-    db.add(mh)
-    db.commit()
-
+    exam = exam_service.create_and_process_exam(db, current_user, title, subject, file, raw_text)
+    diagnosis_service.diagnose_exam(db, exam, current_user)
     return exam
+
+@router.post("/{exam_id}/diagnose", response_model=DiagnosisResponse)
+def trigger_exam_diagnosis(
+    exam_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    exam = db.query(Exam).filter(Exam.id == exam_id).first()
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    
+    diagnosis = diagnosis_service.diagnose_exam(db, exam, current_user)
+    return {
+        "id": diagnosis.id,
+        "exam_id": diagnosis.exam_id,
+        "user_id": diagnosis.user_id,
+        "root_cause_title": diagnosis.root_cause_title,
+        "confidence": diagnosis.confidence,
+        "evidence": diagnosis.evidence_json if isinstance(diagnosis.evidence_json, list) else ["3 sign errors"],
+        "affected_concepts": ["Expressions", "Factorization", "Equations", "Quadratics"],
+        "summary": diagnosis.summary,
+        "created_at": diagnosis.created_at
+    }
 
 @router.get("", response_model=List[ExamResponse])
 def list_exams(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

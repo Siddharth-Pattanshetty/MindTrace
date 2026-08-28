@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
 from app.api.deps import get_db, get_current_user
 from app.models.domain import User, PracticeSet, PracticeQuestion, PracticeAttempt, MasteryHistory, Concept
-from app.schemas.domain import PracticeGenerateRequest, PracticeSetResponse, PracticeSubmitRequest, PracticeAttemptResponse
+from app.schemas.practice import PracticeGenerateRequest, PracticeSetResponse, PracticeSubmitRequest, PracticeAttemptResponse
 from app.practice.practice_engine import practice_engine
+from app.services.practice_service import practice_service
+from app.services.mastery_service import mastery_service
 
 router = APIRouter()
 
@@ -14,37 +15,18 @@ def generate_practice(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    pset = PracticeSet(
-        user_id=current_user.id,
-        diagnosis_id=req.diagnosis_id,
-        target_error_type="SIGN_ERROR"
-    )
-    db.add(pset)
-    db.commit()
-    db.refresh(pset)
+    return practice_service.generate_practice_set(db, current_user, req.diagnosis_id, req.concept or "Factorization", req.count or 5)
 
-    generated_q_list = practice_engine.generate_practice_set(req.concept or "Factorization", req.count or 5)
-    
-    questions_out = []
-    for q_data in generated_q_list:
-        pq = PracticeQuestion(
-            practice_set_id=pset.id,
-            question_text=q_data["question"],
-            expected_answer=q_data["expected_answer"],
-            target_error_type=q_data["target_error"],
-            difficulty=q_data["difficulty"],
-            explanation=q_data["explanation"]
-        )
-        db.add(pq)
-        db.commit()
-        db.refresh(pq)
-        questions_out.append(pq)
-
-    return {
-        "id": pset.id,
-        "target_error_type": pset.target_error_type,
-        "questions": questions_out
-    }
+@router.get("/{practice_id}", response_model=PracticeSetResponse)
+def get_practice_set(
+    practice_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    pset = db.query(PracticeSet).filter(PracticeSet.id == practice_id).first()
+    if not pset:
+        raise HTTPException(status_code=404, detail="Practice set not found")
+    return pset
 
 @router.post("/{practice_id}/submit", response_model=PracticeAttemptResponse)
 def submit_practice(
@@ -71,24 +53,12 @@ def submit_practice(
     db.commit()
     db.refresh(attempt)
 
-    # Calculate updated estimated mastery (Section 19 formula)
-    new_mastery = practice_engine.calculate_estimated_mastery(
-        recent_perf=62.0,
-        historical_perf=48.0,
+    new_mastery = mastery_service.calculate_and_save_mastery(
+        db, current_user, "Algebraic Manipulation",
+        recent_perf=62.0, historical_perf=48.0,
         practice_perf=80.0 if eval_res["is_correct"] else 50.0,
-        consistency=85.0
+        reason="Targeted practice submission"
     )
-
-    concept_obj = db.query(Concept).filter(Concept.name == "Algebraic Manipulation").first()
-    if concept_obj:
-        mh = MasteryHistory(
-            user_id=current_user.id,
-            concept_id=concept_obj.id,
-            mastery_score=new_mastery,
-            change_reason="Updated after targeted practice attempt"
-        )
-        db.add(mh)
-        db.commit()
 
     return {
         "attempt_id": attempt.id,

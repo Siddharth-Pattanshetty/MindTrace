@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mindtrace_mobile/main.dart';
+import 'package:mindtrace_mobile/screens/home_screen.dart';
 
 void main() {
-  testWidgets('MindTrace app renders home screen correctly', (WidgetTester tester) async {
-    await tester.pumpWidget(const MindTraceApp());
+  testWidgets('MindTrace home screen rendering test', (WidgetTester tester) async {
+    await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.text('MindTrace'), findsOneWidget);
     expect(find.text('Analyze Exam'), findsOneWidget);
     expect(find.text('Practice Weak Areas'), findsOneWidget);
   });

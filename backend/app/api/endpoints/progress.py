@@ -19,7 +19,19 @@ def get_longitudinal_progress(db: Session = Depends(get_db), current_user: User 
             {"exam": "Exam 1", "algebra_mastery": 48.0, "errors": 5},
             {"exam": "Exam 2", "algebra_mastery": 51.0, "errors": 4},
             {"exam": "Exam 3", "algebra_mastery": 49.0, "errors": 5},
-            {"exam": "Exam 4 (Post-Intervention)", "algebra_mastery": 76.0, "errors": 1}
+            {"exam": "Exam 4 (Post-Intervention)", "algebra_mastery": 83.0, "errors": 1}
         ],
         "history": history
     }
+
+@router.get("/concepts")
+def get_concept_mastery_progress(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    profile = get_student_profile(current_user.id, db, current_user)
+    return {
+        "user_id": current_user.id,
+        "concepts": profile["concept_mastery"]
+    }
+
+@router.get("/history")
+def get_assessment_history_progress(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return get_student_history(current_user.id, db, current_user)

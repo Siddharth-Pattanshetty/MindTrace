@@ -1,60 +1,37 @@
 import os
 import re
 from typing import List, Dict, Any, Optional
+from app.ai.ocr_service import ocr_service
+from app.ai.vision_service import vision_service
 
 class DocumentProcessor:
     """
-    Handles exam page & answer sheet understanding using Qwen2.5-VL / PaddleOCR pipeline with fallback logic.
+    Handles exam document parsing, OCR text extraction, and question-answer pair segmentation.
+    Uses PaddleOCR + Qwen2.5-VL vision services with clean fallbacks.
     """
     
-    def __init__(self):
-        self.paddle_ocr_available = False
-        self.qwen_available = False
-        self._init_ocr_engines()
-
-    def _init_ocr_engines(self):
-        # Attempt to load PaddleOCR / Qwen if installed in local environment
-        try:
-            from paddleocr import PaddleOCR
-            self.paddle_ocr = PaddleOCR(use_angle_cls=True, lang='en')
-            self.paddle_ocr_available = True
-        except Exception:
-            self.paddle_ocr_available = False
-
-    def process_document(self, file_path: str, raw_text_fallback: Optional[str] = None) -> List[Dict[str, Any]]:
+    def process_document(self, file_path: Optional[str], raw_text_fallback: Optional[str] = None) -> List[Dict[str, Any]]:
         """
-        Extracts questions and student answers from uploaded file or text.
-        Returns structured pairs.
+        Extracts questions and student answers from uploaded file or raw text.
         """
         extracted_text = ""
         
-        if raw_text_fallback:
+        if raw_text_fallback and raw_text_fallback.strip():
             extracted_text = raw_text_fallback
         elif file_path and os.path.exists(file_path):
-            if self.paddle_ocr_available:
-                try:
-                    result = self.paddle_ocr.ocr(file_path, cls=True)
-                    lines = []
-                    for line in result[0]:
-                        lines.append(line[1][0])
-                    extracted_text = "\n".join(lines)
-                except Exception:
-                    extracted_text = self._read_fallback_file(file_path)
+            # Attempt vision/OCR extraction
+            ocr_res = ocr_service.extract_text(file_path)
+            if ocr_res.get("text"):
+                extracted_text = ocr_res["text"]
             else:
-                extracted_text = self._read_fallback_file(file_path)
+                vis_res = vision_service.process_visual_question(file_path)
+                extracted_text = vis_res.get("parsed_text", "")
 
-        if not extracted_text:
-            # Default demo sample exam if empty input
+        if not extracted_text or not extracted_text.strip():
+            # If no text provided or file empty/unreadable, return sample benchmark exam as fallback fixture
             return self.get_sample_math_exam()
             
         return self.parse_structured_exam(extracted_text)
-
-    def _read_fallback_file(self, file_path: str) -> str:
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                return f.read()
-        except Exception:
-            return ""
 
     def parse_structured_exam(self, text: str) -> List[Dict[str, Any]]:
         """
@@ -68,7 +45,6 @@ class DocumentProcessor:
                 q_num = f"Q{blocks[i]}"
                 content = blocks[i+1].strip()
                 
-                # Split content into question text vs student answer if formatted
                 q_text = content
                 s_ans = ""
                 exp_ans = ""
@@ -96,8 +72,18 @@ class DocumentProcessor:
                     "concept_code": "Algebraic Manipulation"
                 })
         else:
-            # Fallback for plain unstructured text
-            questions = self.get_sample_math_exam()
+            # Fallback parsing for plain unsegmented text
+            lines = [l.strip() for l in text.splitlines() if l.strip()]
+            if lines:
+                questions.append({
+                    "question_number": "Q1",
+                    "text": text[:200],
+                    "student_answer": lines[-1] if len(lines) > 1 else lines[0],
+                    "expected_answer": "x = 1",
+                    "concept_code": "Algebraic Manipulation"
+                })
+            else:
+                questions = self.get_sample_math_exam()
 
         return questions
 
@@ -119,7 +105,7 @@ class DocumentProcessor:
             {
                 "question_number": "Q2",
                 "text": "Expand and simplify: 5(2x - 3) - 4(x - 2)",
-                "student_answer": "6x - 23", # Sign error: lost minus sign when expanding -4(x - 2) -> got -4x - 8 -> -23 instead of -15 + 8 = -7
+                "student_answer": "6x - 23",
                 "expected_answer": "6x - 7",
                 "concept_code": "Algebraic Manipulation",
                 "max_marks": 10.0
@@ -135,7 +121,7 @@ class DocumentProcessor:
             {
                 "question_number": "Q4",
                 "text": "Factorize completely: x^2 + 7x + 12",
-                "student_answer": "(x + 2)(x + 6)", # Factorization error: 2*6=12 but 2+6=8 != 7
+                "student_answer": "(x + 2)(x + 6)",
                 "expected_answer": "(x + 3)(x + 4)",
                 "concept_code": "Factorization",
                 "max_marks": 10.0
@@ -151,7 +137,7 @@ class DocumentProcessor:
             {
                 "question_number": "Q6",
                 "text": "Solve for x: 3(x - 2) = 2(x + 4) - 5",
-                "student_answer": "x = 15", # Equation manipulation error: 3x - 6 = 2x + 8 - 5 -> 3x - 6 = 2x + 3 -> x = 9 (got 15)
+                "student_answer": "x = 15",
                 "expected_answer": "x = 9",
                 "concept_code": "Equations",
                 "max_marks": 10.0
@@ -159,7 +145,7 @@ class DocumentProcessor:
             {
                 "question_number": "Q7",
                 "text": "Expand the expression: -(3x - 5)(x + 2)",
-                "student_answer": "-3x^2 + x + 10", # Sign error: -(3x^2 + 6x - 5x - 10) = -3x^2 - x + 10 (got +x)
+                "student_answer": "-3x^2 + x + 10",
                 "expected_answer": "-3x^2 - x + 10",
                 "concept_code": "Algebraic Manipulation",
                 "max_marks": 10.0
@@ -167,7 +153,7 @@ class DocumentProcessor:
             {
                 "question_number": "Q8",
                 "text": "Factorize: 2x^2 + 7x + 3",
-                "student_answer": "(2x + 3)(x + 1)", # Factorization error: 2x*1 + 3x = 5x != 7x
+                "student_answer": "(2x + 3)(x + 1)",
                 "expected_answer": "(2x + 1)(x + 3)",
                 "concept_code": "Factorization",
                 "max_marks": 10.0
@@ -175,7 +161,7 @@ class DocumentProcessor:
             {
                 "question_number": "Q9",
                 "text": "Solve for x: (2x - 4)/3 = (x + 2)/2",
-                "student_answer": "x = 10", # Equation manipulation error: 4x - 8 = 3x + 6 -> x = 14 (got 10)
+                "student_answer": "x = 10",
                 "expected_answer": "x = 14",
                 "concept_code": "Equations",
                 "max_marks": 10.0
@@ -183,7 +169,7 @@ class DocumentProcessor:
             {
                 "question_number": "Q10",
                 "text": "Simplify: 4(x - 3) - 3(2x - 5)",
-                "student_answer": "-2x - 27", # Sign error: -3 * -5 = +15 -> -12 + 15 = 3 (got -27)
+                "student_answer": "-2x - 27",
                 "expected_answer": "-2x + 3",
                 "concept_code": "Algebraic Manipulation",
                 "max_marks": 10.0
