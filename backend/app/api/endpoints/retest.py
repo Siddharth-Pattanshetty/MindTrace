@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 from app.api.deps import get_db, get_current_user
-from app.models.domain import User, Retest, RetestAttempt, MasteryHistory, Concept
+from app.models.domain import User, Retest, RetestAttempt
 from app.schemas.retest import RetestResponse
 from app.practice.practice_engine import practice_engine
 from app.services.mastery_service import mastery_service
@@ -78,16 +78,13 @@ def submit_retest(
     retest.status = "COMPLETED"
     db.commit()
 
-    final_mastery = 83.0 if score_pct >= 66.0 else 65.0
-    mastery_service.calculate_and_save_mastery(
-        db, current_user, "Algebraic Manipulation",
-        recent_perf=score_pct, historical_perf=48.0,
-        practice_perf=90.0, reason="Re-test verified conceptual mastery fix"
+    updated_mastery = mastery_service.update_mastery_from_history(
+        db, current_user.id, "Algebraic Manipulation", reason="Re-test submission verified fix"
     )
 
     return {
         "id": retest.id,
         "status": "COMPLETED",
         "score": score_pct,
-        "improvement_text": f"MindTrace verified your weakness resolution! Estimated mastery increased to {final_mastery}%."
+        "improvement_text": f"MindTrace verified your weakness resolution! Estimated mastery updated to {updated_mastery}%."
     }

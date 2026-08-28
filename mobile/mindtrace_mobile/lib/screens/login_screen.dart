@@ -12,36 +12,44 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final ApiService _apiService = ApiService();
-  final TextEditingController _emailController = TextEditingController(text: "demo@mindtrace.ai");
-  final TextEditingController _passwordController = TextEditingController(text: "demo1234");
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
   String? _errorMsg;
 
   Future<void> _login() async {
+    if (_emailController.text.trim().isEmpty || _passwordController.text.trim().isEmpty) {
+      setState(() {
+        _errorMsg = "Please enter email and password.";
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMsg = null;
     });
 
-    final res = await _apiService.login(
-      _emailController.text.trim(),
-      _passwordController.text.trim(),
-    );
+    try {
+      final res = await _apiService.login(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+      );
 
-    setState(() {
-      _isLoading = false;
-    });
+      setState(() {
+        _isLoading = false;
+      });
 
-    if (res != null && res.containsKey("access_token")) {
-      if (mounted) {
+      if (res.containsKey("access_token") && mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       }
-    } else {
+    } catch (e) {
       setState(() {
-        _errorMsg = "Login failed. Please check credentials or continue as guest.";
+        _isLoading = false;
+        _errorMsg = "Login failed: ${e.toString().replaceAll('Exception:', '')}";
       });
     }
   }
@@ -65,6 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
             if (_errorMsg != null) ...[
               Container(
+                width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(color: Colors.red.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
                 child: Text(_errorMsg!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
@@ -77,7 +86,9 @@ class _LoginScreenState extends State<LoginScreen> {
               style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(
                 labelText: "Email Address",
+                hintText: "student@mindtrace.ai",
                 labelStyle: TextStyle(color: Colors.white60),
+                hintStyle: TextStyle(color: Colors.white30),
                 enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
                 focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)),
               ),

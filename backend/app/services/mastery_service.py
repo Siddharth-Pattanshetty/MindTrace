@@ -10,21 +10,56 @@ class MasteryService:
     Computes all statistics dynamically from database records.
     """
     
-    def calculate_and_save_mastery(
+    def update_mastery_from_history(
         self,
         db: Session,
-        user: User,
-        concept_name: str,
-        recent_perf: float,
-        historical_perf: float,
-        practice_perf: float,
+        user_id: int,
+        concept_name: str = "Algebraic Manipulation",
         reason: str = "Updated assessment"
     ) -> float:
+        """
+        Dynamically calculates concept mastery entirely from persisted database history:
+        - Recent Exam Score (40%)
+        - Historical Exam Average (30%)
+        - Practice Attempt Accuracy (20%)
+        - Consistency Score (10%)
+        Persists the result in MasteryHistory.
+        """
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return 0.0
+
+        exams = db.query(Exam).filter(Exam.user_id == user_id).order_by(Exam.created_at.asc()).all()
+        if exams:
+            recent_exam = exams[-1]
+            recent_perf = (recent_exam.score / max(1.0, recent_exam.max_score)) * 100.0 if recent_exam.max_score else 0.0
+            hist_scores = [(e.score / max(1.0, e.max_score)) * 100.0 for e in exams]
+            historical_perf = sum(hist_scores) / len(hist_scores)
+        else:
+            recent_perf = 0.0
+            historical_perf = 0.0
+
+        # Calculate Practice Performance from real PracticeAttempt records
+        practice_attempts = db.query(PracticeAttempt).filter(PracticeAttempt.user_id == user_id).all()
+        if practice_attempts:
+            correct_p = sum(1 for p in practice_attempts if p.is_correct)
+            practice_perf = (correct_p / len(practice_attempts)) * 100.0
+        else:
+            practice_perf = historical_perf
+
+        # Calculate Retest Performance from real RetestAttempt records
+        retest_attempts = db.query(RetestAttempt).filter(RetestAttempt.user_id == user_id).all()
+        if retest_attempts:
+            correct_r = sum(1 for r in retest_attempts if r.is_correct)
+            retest_perf = (correct_r / len(retest_attempts)) * 100.0
+            # Blend retest into practice performance
+            practice_perf = (practice_perf + retest_perf) / 2.0
+
         mastery = practice_engine.calculate_estimated_mastery(
             recent_perf=recent_perf,
             historical_perf=historical_perf,
             practice_perf=practice_perf,
-            consistency=80.0
+            consistency=85.0 if len(exams) > 1 or len(practice_attempts) > 3 else 60.0
         )
 
         concept_obj = db.query(Concept).filter(Concept.name == concept_name).first()
@@ -35,7 +70,7 @@ class MasteryService:
             db.refresh(concept_obj)
 
         mh = MasteryHistory(
-            user_id=user.id,
+            user_id=user_id,
             concept_id=concept_obj.id,
             mastery_score=mastery,
             change_reason=reason
@@ -63,7 +98,6 @@ class MasteryService:
         hist_scores = [(e.score / max(1.0, e.max_score)) * 100.0 for e in exams]
         historical_perf = sum(hist_scores) / len(hist_scores) if hist_scores else 0.0
 
-        # Get practice accuracy
         practice_attempts = db.query(PracticeAttempt).filter(PracticeAttempt.user_id == user_id).all()
         if practice_attempts:
             correct_p = sum(1 for p in practice_attempts if p.is_correct)
@@ -71,7 +105,6 @@ class MasteryService:
         else:
             practice_perf = historical_perf
 
-        # Compute calculated mastery
         overall_mastery = practice_engine.calculate_estimated_mastery(
             recent_perf=recent_perf,
             historical_perf=historical_perf,
@@ -80,7 +113,6 @@ class MasteryService:
         )
 
         for c in concepts:
-            # Query recent MasteryHistory for concept
             mh = db.query(MasteryHistory).filter(
                 MasteryHistory.user_id == user_id,
                 MasteryHistory.concept_id == c.id
@@ -133,7 +165,6 @@ class MasteryService:
                 "root_cause": diag.root_cause_title if diag else "Weak Algebraic Manipulation"
             })
 
-        # Calculate insight string dynamically
         if len(concept_trends) >= 2:
             first_errs = concept_trends[0]["errors"]
             latest_errs = concept_trends[-1]["errors"]

@@ -8,7 +8,7 @@ from app.db.session import SessionLocal
 from app.core.config import settings
 from app.models.domain import User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login", auto_error=True)
 
 def get_db() -> Generator:
     try:
@@ -21,29 +21,28 @@ def get_current_user(
     db: Session = Depends(get_db),
     token: str = Depends(oauth2_scheme)
 ) -> User:
-    # If no token passed, return demo default user for quick hackathon mobile/API testing
     if not token:
-        user = db.query(User).filter(User.email == "demo@mindtrace.ai").first()
-        if not user:
-            from app.core.security import get_password_hash
-            user = User(
-                email="demo@mindtrace.ai",
-                hashed_password=get_password_hash("demo1234"),
-                full_name="Rahul Verma",
-                role="student"
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-        return user
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication credentials were not provided",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM, settings.ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token payload",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
     except jwt.PyJWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user:

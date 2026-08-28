@@ -15,23 +15,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+  String? _errorMsg;
 
   Future<void> _register() async {
-    setState(() => _isLoading = true);
+    if (_emailController.text.trim().isEmpty || _passwordController.text.trim().isEmpty || _nameController.text.trim().isEmpty) {
+      setState(() {
+        _errorMsg = "Please fill in all fields.";
+      });
+      return;
+    }
 
-    await _apiService.register(
-      _emailController.text.trim(),
-      _passwordController.text.trim(),
-      _nameController.text.trim(),
-    );
+    setState(() {
+      _isLoading = true;
+      _errorMsg = null;
+    });
 
-    setState(() => _isLoading = false);
-
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+    try {
+      await _apiService.register(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+        _nameController.text.trim(),
       );
+
+      // Auto-login after registration
+      await _apiService.login(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+      );
+
+      setState(() => _isLoading = false);
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMsg = "Registration failed: ${e.toString().replaceAll('Exception:', '')}";
+      });
     }
   }
 
@@ -47,6 +71,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
+            if (_errorMsg != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: Colors.red.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                child: Text(_errorMsg!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+              ),
+              const SizedBox(height: 16),
+            ],
             TextField(
               controller: _nameController,
               style: const TextStyle(color: Colors.white),
@@ -93,7 +126,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 onPressed: _isLoading ? null : _register,
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.black)
-                    : const Text("Register", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    : const Text("Register Account", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ),
             ),
           ],

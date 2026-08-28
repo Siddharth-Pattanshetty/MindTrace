@@ -17,43 +17,52 @@ class _UploadScreenState extends State<UploadScreen> {
   bool _isProcessing = false;
   String _currentStep = "";
   double _progress = 0.0;
+  String? _errorMsg;
 
   Future<void> _startProcessing() async {
     setState(() {
       _isProcessing = true;
+      _errorMsg = null;
       _currentStep = "Extracting questions via Document Processor...";
       _progress = 0.25;
     });
 
-    await Future.delayed(const Duration(milliseconds: 700));
-    setState(() {
-      _currentStep = "Evaluating answers with SymPy verifier...";
-      _progress = 0.55;
-    });
+    try {
+      await Future.delayed(const Duration(milliseconds: 500));
+      setState(() {
+        _currentStep = "Evaluating answers with SymPy verifier...";
+        _progress = 0.55;
+      });
 
-    await Future.delayed(const Duration(milliseconds: 700));
-    setState(() {
-      _currentStep = "Finding root learning gaps (Prerequisite graph traversal)...";
-      _progress = 0.85;
-    });
+      await Future.delayed(const Duration(milliseconds: 500));
+      setState(() {
+        _currentStep = "Finding root learning gaps (Prerequisite graph traversal)...";
+        _progress = 0.85;
+      });
 
-    final res = await _apiService.uploadExam(
-      _titleController.text,
-      "Mathematics",
-      _textController.text
-    );
-
-    setState(() {
-      _progress = 1.0;
-      _currentStep = "Analysis complete!";
-    });
-
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => AutopsyScreen(examId: res["id"] ?? 101)),
+      final res = await _apiService.uploadExam(
+        _titleController.text,
+        "Mathematics",
+        _textController.text
       );
+
+      setState(() {
+        _progress = 1.0;
+        _currentStep = "Analysis complete!";
+      });
+
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => AutopsyScreen(examId: res["id"])),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isProcessing = false;
+        _errorMsg = "Exam processing failed: ${e.toString().replaceAll('Exception:', '')}";
+      });
     }
   }
 
@@ -70,6 +79,16 @@ class _UploadScreenState extends State<UploadScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_errorMsg != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: Colors.red.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                child: Text(_errorMsg!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+              ),
+              const SizedBox(height: 16),
+            ],
+
             TextField(
               controller: _titleController,
               style: const TextStyle(color: Colors.white),

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_user
-from app.models.domain import User, PracticeSet, PracticeQuestion, PracticeAttempt, MasteryHistory, Concept
+from app.models.domain import User, PracticeSet, PracticeQuestion, PracticeAttempt
 from app.schemas.practice import PracticeGenerateRequest, PracticeSetResponse, PracticeSubmitRequest, PracticeAttemptResponse
 from app.practice.practice_engine import practice_engine
 from app.services.practice_service import practice_service
@@ -53,11 +53,8 @@ def submit_practice(
     db.commit()
     db.refresh(attempt)
 
-    new_mastery = mastery_service.calculate_and_save_mastery(
-        db, current_user, "Algebraic Manipulation",
-        recent_perf=62.0, historical_perf=48.0,
-        practice_perf=80.0 if eval_res["is_correct"] else 50.0,
-        reason="Targeted practice submission"
+    new_mastery = mastery_service.update_mastery_from_history(
+        db, current_user.id, "Algebraic Manipulation", reason="Targeted practice attempt submitted"
     )
 
     return {
@@ -67,5 +64,5 @@ def submit_practice(
         "score": eval_res["score"],
         "error_detected": attempt.error_detected,
         "updated_mastery": new_mastery,
-        "explanation": pq.explanation or "Practice complete."
+        "explanation": pq.explanation or "Practice evaluation complete."
     }
