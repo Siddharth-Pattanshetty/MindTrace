@@ -1,0 +1,38 @@
+{
+  "name": "MindTrace Diagnostic Agent",
+  "description": "Agent orchestrator for forensic exam diagnosis, math verification, and learning gap remediation",
+  "version": "1.0.0",
+  "skills": [
+    "mindtrace-exam-diagnosis"
+  ],
+  "subagents": [
+    {
+      "name": "exam-parser",
+      "task": "Extract questions, student answers, and expected answers from documents using OCR & document understanding."
+    },
+    {
+      "name": "answer-evaluator",
+      "task": "Perform deterministic SymPy verification on mathematical answers and isolate divergence points."
+    },
+    {
+      "name": "error-classifier",
+      "task": "Classify student mistakes into structured error taxonomy (Sign, Factorization, Procedural, Calculation)."
+    },
+    {
+      "name": "concept-analyzer",
+      "task": "Map questions to concept graph nodes and index embeddings using MiniLM and FAISS."
+    },
+    {
+      "name": "root-cause-analyzer",
+      "task": "Perform prerequisite graph traversal to infer root learning gaps and diagnostic confidence."
+    },
+    {
+      "name": "practice-generator",
+      "task": "Generate targeted adaptive practice sets targeting specific error categories."
+    },
+    {
+      "name": "retest-verifier",
+      "task": "Generate unseen conceptually similar re-tests and measure post-intervention mastery recovery."
+    }
+  ]
+}

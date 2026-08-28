@@ -1,0 +1,110 @@
+{
+  "exam_title": "Mathematics Diagnostic Midterm Exam",
+  "subject": "Mathematics",
+  "total_questions": 10,
+  "student": "Rahul Verma",
+  "questions": [
+    {
+      "question_number": "Q1",
+      "text": "Simplify the algebraic expression: 3(x + 4) - 2(x - 1)",
+      "student_answer": "x + 14",
+      "expected_answer": "x + 14",
+      "concept": "Expressions",
+      "is_correct": true
+    },
+    {
+      "question_number": "Q2",
+      "text": "Expand and simplify: 5(2x - 3) - 4(x - 2)",
+      "student_answer": "6x - 23",
+      "expected_answer": "6x - 7",
+      "concept": "Algebraic Manipulation",
+      "error_type": "SIGN_ERROR",
+      "is_correct": false
+    },
+    {
+      "question_number": "Q3",
+      "text": "Solve for x: 4x + 7 = 27",
+      "student_answer": "x = 5",
+      "expected_answer": "x = 5",
+      "concept": "Equations",
+      "is_correct": true
+    },
+    {
+      "question_number": "Q4",
+      "text": "Factorize completely: x^2 + 7x + 12",
+      "student_answer": "(x + 2)(x + 6)",
+      "expected_answer": "(x + 3)(x + 4)",
+      "concept": "Factorization",
+      "error_type": "FACTORIZATION_ERROR",
+      "is_correct": false
+    },
+    {
+      "question_number": "Q5",
+      "text": "Solve the quadratic equation: x^2 - 5x + 6 = 0",
+      "student_answer": "x = 2, x = 3",
+      "expected_answer": "x = 2, x = 3",
+      "concept": "Quadratic Equations",
+      "is_correct": true
+    },
+    {
+      "question_number": "Q6",
+      "text": "Solve for x: 3(x - 2) = 2(x + 4) - 5",
+      "student_answer": "x = 15",
+      "expected_answer": "x = 9",
+      "concept": "Equations",
+      "error_type": "PROCEDURAL_ERROR",
+      "is_correct": false
+    },
+    {
+      "question_number": "Q7",
+      "text": "Expand the expression: -(3x - 5)(x + 2)",
+      "student_answer": "-3x^2 + x + 10",
+      "expected_answer": "-3x^2 - x + 10",
+      "concept": "Algebraic Manipulation",
+      "error_type": "SIGN_ERROR",
+      "is_correct": false
+    },
+    {
+      "question_number": "Q8",
+      "text": "Factorize: 2x^2 + 7x + 3",
+      "student_answer": "(2x + 3)(x + 1)",
+      "expected_answer": "(2x + 1)(x + 3)",
+      "concept": "Factorization",
+      "error_type": "FACTORIZATION_ERROR",
+      "is_correct": false
+    },
+    {
+      "question_number": "Q9",
+      "text": "Solve for x: (2x - 4)/3 = (x + 2)/2",
+      "student_answer": "x = 10",
+      "expected_answer": "x = 14",
+      "concept": "Equations",
+      "error_type": "PROCEDURAL_ERROR",
+      "is_correct": false
+    },
+    {
+      "question_number": "Q10",
+      "text": "Simplify: 4(x - 3) - 3(2x - 5)",
+      "student_answer": "-2x - 27",
+      "expected_answer": "-2x + 3",
+      "concept": "Algebraic Manipulation",
+      "error_type": "SIGN_ERROR",
+      "is_correct": false
+    }
+  ],
+  "diagnosis_output": {
+    "root_cause": "Weak Algebraic Manipulation",
+    "confidence": 0.91,
+    "evidence": [
+      "3 sign errors",
+      "2 factorization errors",
+      "2 equation manipulation errors"
+    ],
+    "affected_concepts": [
+      "Expressions",
+      "Factorization",
+      "Equations",
+      "Quadratics"
+    ]
+  }
+}

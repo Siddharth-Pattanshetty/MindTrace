@@ -1,0 +1,130 @@
+# ==========================================
+# MindTrace — Root Git Ignore File
+# ==========================================
+
+# ------------------------------------------
+# Environment Variables & Secrets
+# ------------------------------------------
+.env
+*.env
+.env.*
+!.env.example
+
+# ------------------------------------------
+# Database & File Storage
+# ------------------------------------------
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+mindtrace.db
+backend/mindtrace.db
+uploads/
+backend/uploads/
+data/uploads/
+
+# ------------------------------------------
+# Python & Backend Caches
+# ------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+*.egg-info/
+dist/
+sdist/
+wheels/
+.cache/
+
+# ------------------------------------------
+# Virtual Environments
+# ------------------------------------------
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+backend/venv/
+backend/.venv/
+
+# ------------------------------------------
+# AI & ML Model Caches
+# ------------------------------------------
+.huggingface/
+.faiss/
+faiss_index/
+models_cache/
+
+# ------------------------------------------
+# Flutter & Dart (Mobile App)
+# ------------------------------------------
+.dart_tool/
+.fvm/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+
+mobile/*/.dart_tool/
+mobile/*/.flutter-plugins
+mobile/*/.flutter-plugins-dependencies
+mobile/*/.packages
+mobile/*/.pub-cache/
+mobile/*/.pub/
+mobile/*/build/
+
+# Android Build Artifacts & Keys
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+**/android/.gradle/
+**/android/captures/
+**/android/local.properties
+**/android/key.properties
+**/android/app/key.properties
+**/android/*.iml
+**/*.iml
+
+# iOS Build Artifacts & CocoaPods
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.fltparameter
+**/ios/Pods/
+**/ios/Runner.xcodeproj/project.xcworkspace/
+**/ios/Runner.xcodeproj/xcuserdata/
+**/ios/Runner.xcworkspace/
+**/ios/.symlinks/
+
+# Windows / macOS / Linux Desktop Flutter Outputs
+**/windows/flutter/ephemeral/
+**/linux/flutter/ephemeral/
+**/macos/Flutter/ephemeral/
+
+# ------------------------------------------
+# IDE, Editors & OS System Files
+# ------------------------------------------
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.DS_Store
+Thumbs.db
+
+# ------------------------------------------
+# Logs & Docker Artifacts
+# ------------------------------------------
+*.log
+docker/*.log
