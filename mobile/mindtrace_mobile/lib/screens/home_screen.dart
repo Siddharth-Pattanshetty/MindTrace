@@ -36,9 +36,9 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         setState(() {
           _profile = {
-            "overall_health": 50.0,
-            "trend": "Requires Assessment",
-            "active_root_causes": ["Weak Algebraic Manipulation"]
+            "overall_health": 0.0,
+            "trend": "Assessment Pending",
+            "active_root_causes": []
           };
           _isLoading = false;
         });
@@ -48,8 +48,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final healthScore = (_profile?["overall_health"] as num?)?.toDouble() ?? 0.0;
+    final activeCauses = List<String>.from(_profile?["active_root_causes"] ?? []);
+    final activeCauseText = activeCauses.isNotEmpty ? activeCauses.first : "None (All Clean)";
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Dark slate theme
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
         title: const Text("MindTrace", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         backgroundColor: const Color(0xFF1E293B),
@@ -109,14 +113,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 width: 90,
                                 height: 90,
                                 child: CircularProgressIndicator(
-                                  value: (_profile?["overall_health"] ?? 72) / 100,
+                                  value: healthScore / 100.0,
                                   strokeWidth: 10,
                                   backgroundColor: Colors.white12,
                                   color: Colors.cyanAccent,
                                 ),
                               ),
                               Text(
-                                "${(_profile?["overall_health"] ?? 72).toInt()}%",
+                                "${healthScore.toInt()}%",
                                 style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
                               ),
                             ],
@@ -143,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  "Active Root Cause: ${(_profile?["active_root_causes"] as List?)?.firstOrNull ?? 'Algebraic Manipulation'}",
+                                  "Active Root Cause: $activeCauseText",
                                   style: const TextStyle(fontSize: 12, color: Colors.amberAccent),
                                 )
                               ],
@@ -156,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 28),
 
-                  // Action Buttons (Section 24 specification)
+                  // Action Buttons
                   Row(
                     children: [
                       Expanded(
@@ -191,17 +195,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 28),
 
-                  // Quick Diagnostic Shortcuts
-                  const Text("Diagnostic Autopsy Benchmark", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  // Recent Exam Shortcut
+                  const Text("Diagnostic Assessments", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                   const SizedBox(height: 12),
                   ListTile(
                     tileColor: const Color(0xFF1E293B),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     leading: const CircleAvatar(backgroundColor: Colors.redAccent, child: Icon(Icons.bug_report, color: Colors.white)),
-                    title: const Text("Mathematics Midterm Autopsy", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                    subtitle: const Text("Score: 62/100 • Root Cause: Weak Algebraic Manipulation", style: TextStyle(color: Colors.white60, fontSize: 12)),
+                    title: const Text("Mathematics Diagnostic Benchmark", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    subtitle: const Text("Run forensic error autopsy & prerequisite gap analysis", style: TextStyle(color: Colors.white60, fontSize: 12)),
                     trailing: const Icon(Icons.chevron_right, color: Colors.white54),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AutopsyScreen(examId: 101))),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AutopsyScreen(examId: 1))),
                   ),
                 ],
               ),

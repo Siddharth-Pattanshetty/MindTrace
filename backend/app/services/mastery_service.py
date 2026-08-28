@@ -162,7 +162,7 @@ class MasteryService:
                 "score": e.score,
                 "max_score": e.max_score,
                 "date": e.created_at.strftime("%Y-%m-%d"),
-                "root_cause": diag.root_cause_title if diag else "Weak Algebraic Manipulation"
+                "root_cause": diag.root_cause_title if diag else "Assessment Pending"
             })
 
         if len(concept_trends) >= 2:

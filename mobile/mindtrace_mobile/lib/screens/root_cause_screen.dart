@@ -9,13 +9,9 @@ class RootCauseScreen extends StatelessWidget {
 
   const RootCauseScreen({
     super.key,
-    this.rootCause = "Weak Algebraic Manipulation",
-    this.confidence = 0.91,
-    this.evidence = const [
-      "3 sign errors across expansion sub-terms",
-      "2 factorization errors during zero-product solving",
-      "2 equation manipulation errors during variable transposition"
-    ],
+    required this.rootCause,
+    required this.confidence,
+    required this.evidence,
     this.affectedConcepts = const ["Expressions", "Factorization", "Equations", "Quadratics"],
   });
 
