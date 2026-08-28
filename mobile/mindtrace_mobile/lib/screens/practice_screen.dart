@@ -3,7 +3,13 @@ import '../services/api_service.dart';
 import 'progress_screen.dart';
 
 class PracticeScreen extends StatefulWidget {
-  const PracticeScreen({super.key});
+  final int practiceSetId;
+  final String concept;
+  const PracticeScreen({
+    super.key,
+    this.practiceSetId = 1,
+    this.concept = "Factorization",
+  });
 
   @override
   State<PracticeScreen> createState() => _PracticeScreenState();
@@ -13,50 +19,57 @@ class _PracticeScreenState extends State<PracticeScreen> {
   final ApiService _apiService = ApiService();
   final TextEditingController _answerController = TextEditingController();
 
+  List<Map<String, dynamic>> _questions = [];
   int _currentIndex = 0;
+  bool _isLoading = true;
   bool _submitted = false;
   Map<String, dynamic>? _lastFeedback;
+  String? _errorMsg;
 
-  final List<Map<String, String>> _questions = [
-    {
-      "question": "Simplify the expression: 4(2x - 5) - 3(x - 2)",
-      "expected": "5x - 14",
-      "concept": "Algebraic Manipulation"
-    },
-    {
-      "question": "Factorize completely: x^2 + 8x + 15",
-      "expected": "(x + 3)(x + 5)",
-      "concept": "Factorization"
-    },
-    {
-      "question": "Solve the quadratic equation: 2x^2 + 7x + 3 = 0",
-      "expected": "x = -1/2, x = -3",
-      "concept": "Quadratic Equations"
-    },
-    {
-      "question": "Factorize completely: 3x^2 + 8x + 4",
-      "expected": "(3x + 2)(x + 2)",
-      "concept": "Factorization"
-    },
-    {
-      "question": "Solve for x: 5(x - 3) = 2(x + 6)",
-      "expected": "x = 9",
-      "concept": "Equations"
+  @override
+  void initState() {
+    super.initState();
+    _loadPracticeSet();
+  }
+
+  Future<void> _loadPracticeSet() async {
+    try {
+      final res = await _apiService.generatePracticeSet(1, widget.concept, 5);
+      final qList = List<Map<String, dynamic>>.from(res["questions"] ?? []);
+      setState(() {
+        _questions = qList;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMsg = "Failed to load practice questions: $e";
+        _isLoading = false;
+      });
     }
-  ];
+  }
 
   Future<void> _submitAnswer() async {
-    if (_answerController.text.trim().isEmpty) return;
+    if (_answerController.text.trim().isEmpty || _questions.isEmpty) return;
 
-    final result = await _apiService.submitPracticeAttempt(
-      _currentIndex + 1,
-      _answerController.text.trim(),
-    );
+    final q = _questions[_currentIndex];
+    final qId = q["id"] ?? (_currentIndex + 1);
 
-    setState(() {
-      _submitted = true;
-      _lastFeedback = result;
-    });
+    try {
+      final result = await _apiService.submitPracticeAttempt(
+        widget.practiceSetId,
+        qId,
+        _answerController.text.trim(),
+      );
+
+      setState(() {
+        _submitted = true;
+        _lastFeedback = result;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error submitting answer: $e")),
+      );
+    }
   }
 
   void _nextQuestion() {
@@ -68,7 +81,6 @@ class _PracticeScreenState extends State<PracticeScreen> {
         _answerController.clear();
       });
     } else {
-      // Completed practice set, push to Retest / Progress Screen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const ProgressScreen()),
@@ -78,6 +90,27 @@ class _PracticeScreenState extends State<PracticeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
+        appBar: AppBar(title: const Text("Targeted Practice"), backgroundColor: const Color(0xFF1E293B)),
+        body: const Center(child: CircularProgressIndicator(color: Colors.cyanAccent)),
+      );
+    }
+
+    if (_errorMsg != null || _questions.isEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
+        appBar: AppBar(title: const Text("Targeted Practice"), backgroundColor: const Color(0xFF1E293B)),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Text(_errorMsg ?? "No practice questions available.", style: const TextStyle(color: Colors.redAccent)),
+          ),
+        ),
+      );
+    }
+
     final q = _questions[_currentIndex];
 
     return Scaffold(
@@ -91,12 +124,11 @@ class _PracticeScreenState extends State<PracticeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Info
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Weakness: Factorization", style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold)),
-                Text("Progress: ${_currentIndex + 1}/${_questions.length}", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
+                Text("Weakness: ${widget.concept}", style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold)),
+                Text("Progress: ${_currentIndex + 1}/${_questions.length}", style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: 8),
@@ -120,7 +152,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                     Text("Question ${_currentIndex + 1}", style: const TextStyle(color: Colors.white54, fontSize: 13)),
                     const SizedBox(height: 8),
                     Text(
-                      q["question"]!,
+                      q["question_text"] ?? q["question"] ?? "Solve problem",
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ],
@@ -158,11 +190,11 @@ class _PracticeScreenState extends State<PracticeScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: _submitAnswer,
-                  child: const Text("Submit", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  child: const Text("Submit Answer", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 ),
               )
             else ...[
-              // Feedback Panel (Section 27 specification)
+              // Feedback Panel
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -197,17 +229,17 @@ class _PracticeScreenState extends State<PracticeScreen> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      "Why: ${_lastFeedback?["explanation"] ?? "Detailed explanation"}",
+                      "Why: ${_lastFeedback?["explanation"] ?? q["explanation"] ?? "Explanation"}",
                       style: const TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      "Error pattern: No recurring sign error detected.",
-                      style: TextStyle(color: Colors.cyanAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                    Text(
+                      "Error detected: ${_lastFeedback?["error_detected"] ?? 'None'}",
+                      style: const TextStyle(color: Colors.cyanAccent, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "Mastery updated: 52% → ${(_lastFeedback?["updated_mastery"] ?? 61).toInt()}%",
+                      "Updated Estimated Mastery: ${(_lastFeedback?["updated_mastery"] ?? 50.0).toStringAsFixed(1)}%",
                       style: const TextStyle(color: Colors.amberAccent, fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                   ],

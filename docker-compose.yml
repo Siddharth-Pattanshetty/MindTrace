@@ -7,9 +7,10 @@ services:
       dockerfile: docker/Dockerfile.backend
     ports:
       - "8000:8000"
+    env_file:
+      - backend/.env
     environment:
       - DATABASE_URL=sqlite:///./mindtrace.db
-      - SECRET_KEY=mindtrace-production-secret-key-2026
     volumes:
       - mindtrace_data:/app/data
 

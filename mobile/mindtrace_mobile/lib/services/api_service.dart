@@ -4,189 +4,174 @@ import 'package:http/http.dart' as http;
 class ApiService {
   static const String baseUrl = "http://127.0.0.1:8000/api";
   static String? authToken;
+  static int currentUserId = 1;
 
   Map<String, String> get _headers => {
     "Content-Type": "application/json",
     if (authToken != null) "Authorization": "Bearer $authToken",
   };
 
-  Future<Map<String, dynamic>?> login(String email, String password) async {
-    try {
-      final response = await http.post(
-        Uri.parse("$baseUrl/auth/login"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"email": email, "password": password}),
-      ).timeout(const Duration(seconds: 4));
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/auth/login"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email, "password": password}),
+    );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        authToken = data["access_token"];
-        return data;
-      }
-    } catch (_) {}
-
-    // Demo token fallback
-    authToken = "demo_token_12345";
-    return {
-      "access_token": authToken,
-      "token_type": "bearer",
-      "user_id": 1,
-      "full_name": "Rahul Verma"
-    };
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      authToken = data["access_token"];
+      currentUserId = data["user_id"] ?? 1;
+      return data;
+    } else {
+      final err = jsonDecode(response.body);
+      throw Exception(err["detail"] ?? "Login failed");
+    }
   }
 
-  Future<Map<String, dynamic>?> register(String email, String password, String fullName) async {
-    try {
-      final response = await http.post(
-        Uri.parse("$baseUrl/auth/register"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"email": email, "password": password, "full_name": fullName}),
-      ).timeout(const Duration(seconds: 4));
+  Future<Map<String, dynamic>> register(String email, String password, String fullName) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/auth/register"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email, "password": password, "full_name": fullName}),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      final err = jsonDecode(response.body);
+      throw Exception(err["detail"] ?? "Registration failed");
+    }
+  }
+
+  Future<Map<String, dynamic>> uploadExam(String title, String subject, String rawText, {String? filePath}) async {
+    if (filePath != null && filePath.isNotEmpty) {
+      // Multipart request for real exam image/PDF upload
+      var request = http.MultipartRequest('POST', Uri.parse("$baseUrl/exams/upload"));
+      if (authToken != null) {
+        request.headers["Authorization"] = "Bearer $authToken";
+      }
+      request.fields['title'] = title;
+      request.fields['subject'] = subject;
+      if (rawText.isNotEmpty) request.fields['raw_text'] = rawText;
+
+      request.files.add(await http.MultipartFile.fromPath('file', filePath));
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
+      } else {
+        throw Exception("Failed to upload exam file: ${response.body}");
       }
-    } catch (_) {}
-
-    return {
-      "id": 1,
-      "email": email,
-      "full_name": fullName,
-      "role": "student"
-    };
-  }
-
-  Future<Map<String, dynamic>> uploadExam(String title, String subject, String rawText) async {
-    try {
+    } else {
       final response = await http.post(
         Uri.parse("$baseUrl/exams/upload"),
-        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          if (authToken != null) "Authorization": "Bearer $authToken",
+        },
         body: {
           "title": title,
           "subject": subject,
           "raw_text": rawText,
         },
-      ).timeout(const Duration(seconds: 5));
+      );
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
+      } else {
+        throw Exception("Failed to upload exam: ${response.body}");
       }
-    } catch (_) {}
-
-    return {
-      "id": 101,
-      "title": title.isNotEmpty ? title : "Mathematics Diagnostic Benchmark",
-      "subject": subject.isNotEmpty ? subject : "Mathematics",
-      "score": 62.0,
-      "max_score": 100.0,
-      "status": "COMPLETED",
-      "created_at": DateTime.now().toIso8601String()
-    };
+    }
   }
 
   Future<Map<String, dynamic>> getExamAnalysis(int examId) async {
-    try {
-      final response = await http.get(Uri.parse("$baseUrl/exams/$examId/analysis"), headers: _headers).timeout(const Duration(seconds: 4));
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-    } catch (_) {}
-
-    return {
-      "exam_id": examId,
-      "score": 62.0,
-      "max_score": 100.0,
-      "total_questions": 10,
-      "incorrect_count": 7,
-      "error_counts": {
-        "concept_errors": 18,
-        "calculation_errors": 8,
-        "procedural_errors": 7
-      },
-      "root_cause": "Weak Algebraic Manipulation",
-      "confidence": 0.91,
-      "evidence": [
-        "3 sign errors",
-        "2 factorization errors",
-        "2 equation manipulation errors"
-      ],
-      "summary": "Your lost marks are primarily due to weak algebraic manipulation. This caused repeated sign, factorization, and equation-solving errors across multiple questions."
-    };
+    final response = await http.get(Uri.parse("$baseUrl/exams/$examId/analysis"), headers: _headers);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Failed to fetch exam analysis for ID $examId");
+    }
   }
 
   Future<Map<String, dynamic>> getStudentProfile() async {
-    try {
-      final response = await http.get(Uri.parse("$baseUrl/students/1/profile"), headers: _headers).timeout(const Duration(seconds: 4));
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-    } catch (_) {}
-
-    return {
-      "student_id": 1,
-      "full_name": "Rahul Verma",
-      "overall_health": 72.0,
-      "trend": "Improving",
-      "concept_mastery": {
-        "Algebra": 48.0,
-        "Algebraic Manipulation": 45.0,
-        "Factorization": 52.0,
-        "Quadratics": 61.0,
-        "Calculus": 82.0,
-        "Probability": 76.0
-      },
-      "recent_exams_count": 4,
-      "active_root_causes": ["Weak Algebraic Manipulation"]
-    };
+    final response = await http.get(Uri.parse("$baseUrl/students/$currentUserId/profile"), headers: _headers);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Failed to fetch student profile");
+    }
   }
 
-  Future<Map<String, dynamic>> submitPracticeAttempt(int questionId, String answer) async {
-    try {
-      final response = await http.post(
-        Uri.parse("$baseUrl/practice/1/submit"),
-        headers: _headers,
-        body: jsonEncode({
-          "question_id": questionId,
-          "student_answer": answer
-        })
-      ).timeout(const Duration(seconds: 4));
+  Future<Map<String, dynamic>> submitPracticeAttempt(int practiceId, int questionId, String answer) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/practice/$practiceId/submit"),
+      headers: _headers,
+      body: jsonEncode({
+        "question_id": questionId,
+        "student_answer": answer
+      })
+    );
 
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-    } catch (_) {}
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Failed to submit practice attempt");
+    }
+  }
 
-    final bool isCorrect = answer.replaceAll(" ", "").contains("5x-14") || answer.replaceAll(" ", "").contains("(x+3)(x+5)") || answer.replaceAll(" ", "").contains("9");
-    return {
-      "attempt_id": 1,
-      "question_id": questionId,
-      "is_correct": isCorrect,
-      "score": isCorrect ? 10.0 : 4.0,
-      "error_detected": isCorrect ? null : "SIGN_ERROR",
-      "updated_mastery": isCorrect ? 61.0 : 52.0,
-      "explanation": isCorrect
-          ? "Correct! No recurring sign error detected. Mastery increased from 52% to 61%."
-          : "Sign error detected. Expand carefully: -3(x - 2) = -3x + 6."
-    };
+  Future<Map<String, dynamic>> generatePracticeSet(int diagnosisId, String concept, int count) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/practice/generate"),
+      headers: _headers,
+      body: jsonEncode({
+        "diagnosis_id": diagnosisId,
+        "concept": concept,
+        "count": count
+      })
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Failed to generate practice set");
+    }
+  }
+
+  Future<Map<String, dynamic>> generateRetest() async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/retest/generate"),
+      headers: _headers
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Failed to generate retest");
+    }
+  }
+
+  Future<Map<String, dynamic>> submitRetest(int retestId, List<Map<String, dynamic>> answers) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/retest/$retestId/submit"),
+      headers: _headers,
+      body: jsonEncode({"answers": answers})
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Failed to submit retest");
+    }
   }
 
   Future<Map<String, dynamic>> getProgress() async {
-    try {
-      final response = await http.get(Uri.parse("$baseUrl/progress"), headers: _headers).timeout(const Duration(seconds: 4));
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-    } catch (_) {}
-
-    return {
-      "longitudinal_insight": "Your algebra errors have decreased from an average of 4.7 per exam to 1 after targeted practice.",
-      "overall_health": 72.0,
-      "concept_trends": [
-        {"exam": "Exam 1", "algebra_mastery": 48.0, "errors": 5},
-        {"exam": "Exam 2", "algebra_mastery": 51.0, "errors": 4},
-        {"exam": "Exam 3", "algebra_mastery": 49.0, "errors": 5},
-        {"exam": "Exam 4 (Post-Intervention)", "algebra_mastery": 83.0, "errors": 1}
-      ]
-    };
+    final response = await http.get(Uri.parse("$baseUrl/progress"), headers: _headers);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Failed to fetch longitudinal progress");
+    }
   }
 }

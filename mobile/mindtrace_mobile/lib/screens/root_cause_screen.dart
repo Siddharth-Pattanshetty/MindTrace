@@ -2,7 +2,22 @@ import 'package:flutter/material.dart';
 import 'practice_screen.dart';
 
 class RootCauseScreen extends StatelessWidget {
-  const RootCauseScreen({super.key});
+  final String rootCause;
+  final double confidence;
+  final List<String> evidence;
+  final List<String> affectedConcepts;
+
+  const RootCauseScreen({
+    super.key,
+    this.rootCause = "Weak Algebraic Manipulation",
+    this.confidence = 0.91,
+    this.evidence = const [
+      "3 sign errors across expansion sub-terms",
+      "2 factorization errors during zero-product solving",
+      "2 equation manipulation errors during variable transposition"
+    ],
+    this.affectedConcepts = const ["Expressions", "Factorization", "Equations", "Quadratics"],
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -36,16 +51,16 @@ class RootCauseScreen extends StatelessWidget {
                 children: [
                   const Text("Primary weakness:", style: TextStyle(color: Colors.white60, fontSize: 13)),
                   const SizedBox(height: 4),
-                  const Text(
-                    "Algebraic Manipulation",
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.amberAccent),
+                  Text(
+                    rootCause,
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.amberAccent),
                   ),
                   const SizedBox(height: 12),
                   Row(
-                    children: const [
-                      Icon(Icons.verified, color: Colors.cyanAccent, size: 18),
-                      SizedBox(width: 6),
-                      Text("MindTrace Diagnostic confidence: 91%", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+                    children: [
+                      const Icon(Icons.verified, color: Colors.cyanAccent, size: 18),
+                      const SizedBox(width: 6),
+                      Text("MindTrace Diagnostic confidence: ${(confidence * 100).toInt()}%", style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 13)),
                     ],
                   ),
                 ],
@@ -54,12 +69,13 @@ class RootCauseScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            // Evidence Section (Section 26 specification)
+            // Evidence Section
             const Text("Evidence:", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
             const SizedBox(height: 10),
-            _buildEvidenceItem("3 sign errors across expansion sub-terms"),
-            _buildEvidenceItem("2 factorization errors during zero-product solving"),
-            _buildEvidenceItem("2 equation manipulation errors during variable transposition"),
+            if (evidence.isEmpty)
+              const Text("No specific error patterns recorded.", style: TextStyle(color: Colors.white54))
+            else
+              ...evidence.map((e) => _buildEvidenceItem(e)),
 
             const SizedBox(height: 24),
 
@@ -69,17 +85,12 @@ class RootCauseScreen extends StatelessWidget {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: [
-                _buildConceptChip("Expressions", Colors.blueAccent),
-                _buildConceptChip("Factorization", Colors.amberAccent),
-                _buildConceptChip("Equations", Colors.orangeAccent),
-                _buildConceptChip("Quadratics", Colors.purpleAccent),
-              ],
+              children: affectedConcepts.map((c) => _buildConceptChip(c, Colors.cyanAccent)).toList(),
             ),
 
             const SizedBox(height: 28),
 
-            // Interactive Prerequisite Dependency Graph
+            // Prerequisite Dependency Graph
             const Text("Prerequisite Dependency Graph", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
             const SizedBox(height: 12),
             Container(
@@ -95,9 +106,9 @@ class RootCauseScreen extends StatelessWidget {
                   const Icon(Icons.arrow_downward, color: Colors.white38),
                   _buildGraphNode("Factorization", "Depends on Algebraic Manipulation", false),
                   const Icon(Icons.arrow_downward, color: Colors.redAccent, size: 28),
-                  _buildGraphNode("Algebraic Manipulation", "FOUNDATIONAL ROOT GAP DETECTED", true),
+                  _buildGraphNode(rootCause, "FOUNDATIONAL ROOT GAP DETECTED", true),
                   const Icon(Icons.arrow_downward, color: Colors.white38),
-                  _buildGraphNode("Algebraic Expressions", "Prerequisite Concept (Mastered)", false),
+                  _buildGraphNode("Algebraic Expressions", "Prerequisite Concept", false),
                 ],
               ),
             ),
