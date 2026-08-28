@@ -52,9 +52,11 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
       _loadProgress();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Re-test execution error: $e")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Re-test execution error: $e")),
+        );
+      }
     }
   }
 

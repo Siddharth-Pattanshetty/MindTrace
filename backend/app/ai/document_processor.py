@@ -10,16 +10,16 @@ class DocumentProcessor:
     Uses PaddleOCR + Qwen2.5-VL vision services with clean fallbacks.
     """
     
-    def process_document(self, file_path: Optional[str], raw_text_fallback: Optional[str] = None) -> List[Dict[str, Any]]:
+    def process_document(self, file_path: Optional[str] = None, raw_text_fallback: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Extracts questions and student answers from uploaded file or raw text.
+        Raises ValueError if no valid document text can be extracted.
         """
         extracted_text = ""
         
         if raw_text_fallback and raw_text_fallback.strip():
             extracted_text = raw_text_fallback
         elif file_path and os.path.exists(file_path):
-            # Attempt vision/OCR extraction
             ocr_res = ocr_service.extract_text(file_path)
             if ocr_res.get("text"):
                 extracted_text = ocr_res["text"]
@@ -28,8 +28,10 @@ class DocumentProcessor:
                 extracted_text = vis_res.get("parsed_text", "")
 
         if not extracted_text or not extracted_text.strip():
-            # If no text provided or file empty/unreadable, return sample benchmark exam as fallback fixture
-            return self.get_sample_math_exam()
+            # If both file and text are omitted, return the benchmark math exam for test fixture requests
+            if not file_path and not raw_text_fallback:
+                return self.get_sample_math_exam()
+            raise ValueError("Failed to extract readable questions or student answers from the uploaded document.")
             
         return self.parse_structured_exam(extracted_text)
 
@@ -72,7 +74,6 @@ class DocumentProcessor:
                     "concept_code": "Algebraic Manipulation"
                 })
         else:
-            # Fallback parsing for plain unsegmented text
             lines = [l.strip() for l in text.splitlines() if l.strip()]
             if lines:
                 questions.append({
@@ -83,15 +84,14 @@ class DocumentProcessor:
                     "concept_code": "Algebraic Manipulation"
                 })
             else:
-                questions = self.get_sample_math_exam()
+                raise ValueError("Could not parse structured question-answer pairs from input text.")
 
         return questions
 
     @staticmethod
     def get_sample_math_exam() -> List[Dict[str, Any]]:
         """
-        Returns the standard 10-question Math Exam benchmark matching the end-to-end scenario (Section 37).
-        Score: 62/100, 7 incorrect answers with 3 sign errors, 2 factorization errors, 2 equation manipulation errors.
+        Explicit benchmark test fixture (Section 37).
         """
         return [
             {

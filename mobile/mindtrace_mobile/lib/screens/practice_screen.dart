@@ -66,9 +66,11 @@ class _PracticeScreenState extends State<PracticeScreen> {
         _lastFeedback = result;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error submitting answer: $e")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error submitting answer: $e")),
+        );
+      }
     }
   }
 

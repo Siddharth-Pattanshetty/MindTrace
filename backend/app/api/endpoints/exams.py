@@ -14,7 +14,7 @@ router = APIRouter()
 
 @router.post("/upload", response_model=ExamResponse)
 def upload_exam(
-    title: str = Form("Mathematics Midterm Exam"),
+    title: str = Form("Mathematics Diagnostic Exam"),
     subject: str = Form("Mathematics"),
     file: Optional[UploadFile] = File(None),
     raw_text: Optional[str] = Form(None),
@@ -36,13 +36,14 @@ def trigger_exam_diagnosis(
         raise HTTPException(status_code=404, detail="Exam not found")
     
     diagnosis = diagnosis_service.diagnose_exam(db, exam, current_user)
+    evidence = diagnosis.evidence_json if isinstance(diagnosis.evidence_json, list) else []
     return {
         "id": diagnosis.id,
         "exam_id": diagnosis.exam_id,
         "user_id": diagnosis.user_id,
         "root_cause_title": diagnosis.root_cause_title,
         "confidence": diagnosis.confidence,
-        "evidence": diagnosis.evidence_json if isinstance(diagnosis.evidence_json, list) else ["3 sign errors"],
+        "evidence": evidence,
         "affected_concepts": ["Expressions", "Factorization", "Equations", "Quadratics"],
         "summary": diagnosis.summary,
         "created_at": diagnosis.created_at
@@ -75,6 +76,10 @@ def get_exam_analysis(exam_id: int, db: Session = Depends(get_db), current_user:
     evaluations = db.query(Evaluation).filter(Evaluation.question_id.in_(q_ids)).all() if q_ids else []
     errors = db.query(ErrorItem).filter(ErrorItem.question_id.in_(q_ids)).all() if q_ids else []
     diagnosis = db.query(Diagnosis).filter(Diagnosis.exam_id == exam_id).first()
+    if not diagnosis:
+        diagnosis = diagnosis_service.diagnose_exam(db, exam, current_user)
+
+    evidence = diagnosis.evidence_json if isinstance(diagnosis.evidence_json, list) else []
 
     return {
         "exam_id": exam_id,
@@ -87,8 +92,8 @@ def get_exam_analysis(exam_id: int, db: Session = Depends(get_db), current_user:
             "calculation_errors": sum(1 for e in errors if "CALC" in e.error_type or "SIGN" in e.error_type),
             "procedural_errors": sum(1 for e in errors if "PROC" in e.error_type)
         },
-        "root_cause": diagnosis.root_cause_title if diagnosis else "Weak Algebraic Manipulation",
-        "confidence": diagnosis.confidence if diagnosis else 0.91,
-        "evidence": diagnosis.evidence_json if diagnosis else ["3 sign errors", "2 factorization errors", "2 equation manipulation errors"],
-        "summary": diagnosis.summary if diagnosis else "Identified learning gap in algebraic manipulation."
+        "root_cause": diagnosis.root_cause_title,
+        "confidence": diagnosis.confidence,
+        "evidence": evidence,
+        "summary": diagnosis.summary
     }
