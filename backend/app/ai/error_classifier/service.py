@@ -21,17 +21,17 @@ class ErrorClassifierService:
             confidence=round(confidence, 4)
         )
 
-    def get_model_info(self) -> ModelInfoResponse:
+    def get_model_info(self) -> Dict[str, Any]:
         metadata = ErrorClassifierModelLoader.get_metadata()
         vectorizer, classifier, classes, _ = ErrorClassifierModelLoader.load_model()
-        return ModelInfoResponse(
-            model_name=metadata.get("model_name", "MindTrace Error Classifier"),
-            version=metadata.get("version", "1.0.0"),
-            algorithm=metadata.get("algorithm", "TF-IDF + Logistic Regression"),
-            dataset=metadata.get("dataset", "MAP"),
-            classes=classes if isinstance(classes, list) else list(classes or []),
-            metadata={"evaluation_metrics": metadata.get("evaluation_metrics", {})}
-        )
+        return {
+            "model_name": metadata.get("model_name", "MindTrace Error Classifier"),
+            "version": metadata.get("version", "1.0.0"),
+            "algorithm": metadata.get("algorithm", "TF-IDF + Logistic Regression"),
+            "dataset": metadata.get("dataset", "MAP"),
+            "classes": classes if isinstance(classes, list) else list(classes or []),
+            "metadata": {"evaluation_metrics": metadata.get("evaluation_metrics", {})}
+        }
 
 # Singleton instance for service reuse
 _error_classifier_service = None

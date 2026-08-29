@@ -21,8 +21,26 @@ def test_model_info_api():
     response = client.get("/api/ai/model-info")
     assert response.status_code == 200
     data = response.json()
-    assert data["model_name"] == "MindTrace Error Classifier"
-    assert "classes" in data
+    assert "error_classifier" in data
+    assert "root_cause_model" in data
+    assert "confidence_calibration" in data
+
+def test_predict_root_cause_api():
+    payload = {
+        "student_id": "student_001",
+        "subject": "MATHEMATICS",
+        "error_type": "SIGN_ERROR",
+        "concept": "Quadratic Factorization",
+        "error_confidence": 0.85,
+        "concept_confidence": 0.90
+    }
+    response = client.post("/api/ai/predict-root-cause", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert "root_cause" in data
+    assert "calibrated_probability" in data
+    assert "raw_probability" in data
+    assert 0.0 <= data["calibrated_probability"] <= 1.0
 
 def test_classify_concept_api():
     payload = {
@@ -49,9 +67,10 @@ def test_analyze_attempt_api():
     response = client.post("/api/ai/analyze-attempt", json=payload)
     assert response.status_code == 200
     data = response.json()
-    assert "error" in data
-    assert "type" in data["error"]
-    assert "confidence" in data["error"]
+    assert "error_type" in data
     assert "concept" in data
-    assert "hierarchy" in data
-    assert "prerequisites" in data
+    assert "root_cause" in data
+    assert "root_cause_probability" in data
+    assert "error_detail" in data
+    assert "root_cause_detail" in data
+    assert 0.0 <= data["root_cause_probability"] <= 1.0

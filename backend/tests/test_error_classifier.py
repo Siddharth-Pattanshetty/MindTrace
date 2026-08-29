@@ -34,5 +34,5 @@ def test_prediction_output():
 def test_model_info():
     service = ErrorClassifierService()
     info = service.get_model_info()
-    assert info.model_name == "MindTrace Error Classifier"
-    assert len(info.classes) > 0
+    assert info["model_name"] == "MindTrace Error Classifier"
+    assert len(info["classes"]) > 0

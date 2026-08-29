@@ -12,9 +12,13 @@ class ErrorClassificationResponse(BaseModel):
     confidence: float = Field(..., description="Probability confidence of the prediction")
 
 class ModelInfoResponse(BaseModel):
-    model_name: str
-    version: str
-    algorithm: str
-    dataset: str
-    classes: List[str]
+    error_classifier: Optional[Dict[str, Any]] = None
+    root_cause_model: Optional[Dict[str, Any]] = None
+    confidence_calibration: Optional[Dict[str, Any]] = None
+    model_name: Optional[str] = "MindTrace Complete AI Diagnostic Suite"
+    version: Optional[str] = "1.0.0"
+    algorithm: Optional[str] = None
+    dataset: Optional[str] = None
+    classes: Optional[List[str]] = None
     metadata: Optional[Dict[str, Any]] = None
+
