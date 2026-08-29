@@ -31,6 +31,12 @@ class ConceptDetail(BaseModel):
     name: str
     confidence: float
 
+class MasteryDetail(BaseModel):
+    concept: str
+    mastery: float
+    probability_of_success: float
+    trend: str
+
 class RootCauseDetail(BaseModel):
     root_cause: str
     calibrated_probability: float
@@ -53,8 +59,10 @@ class AttemptAnalysisResponse(BaseModel):
     root_cause_probability: float
     raw_root_cause_probability: Optional[float] = None
     calibration_method: Optional[str] = None
+    error: Optional[ErrorDetail] = None
     error_detail: Optional[ErrorDetail] = None
     concept_detail: Optional[ConceptDetail] = None
+    mastery: Optional[MasteryDetail] = None
     root_cause_detail: Optional[RootCauseDetail] = None
     recommendation: Optional[RecommendationDetail] = None
     hierarchy: List[str] = Field(default_factory=list)

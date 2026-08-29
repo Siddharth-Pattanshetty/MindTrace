@@ -10,9 +10,12 @@ from app.ai.concept_engine.schemas import (
     AttemptAnalysisResponse,
     ErrorDetail,
     ConceptDetail,
+    MasteryDetail,
     RootCauseDetail,
     RecommendationDetail
 )
+from app.ai.mastery.service import MasteryService, get_mastery_service
+from app.ai.mastery.schemas import MasteryPredictionRequest, MasteryPredictionResponse
 from app.ai.root_cause.service import RootCauseService, get_root_cause_service
 from app.ai.root_cause.schemas import RootCausePredictionRequest, RootCausePredictionResponse
 
@@ -25,9 +28,6 @@ def classify_error(
     request: ErrorClassificationRequest,
     error_service: ErrorClassifierService = Depends(get_error_classifier_service)
 ):
-    """
-    Classifies a student's answer error type using TF-IDF + Logistic Regression trained model.
-    """
     try:
         return error_service.classify_error(request)
     except Exception as e:
@@ -42,9 +42,6 @@ def classify_concept(
     request: ConceptClassificationRequest,
     concept_service: ConceptEngineService = Depends(get_concept_engine_service)
 ):
-    """
-    Identifies the underlying concept using embedding-based similarity retrieval + Knowledge Graph.
-    """
     try:
         return concept_service.identify_concept(
             question=request.question,
@@ -59,14 +56,25 @@ def classify_concept(
             detail=f"Failed to classify concept: {str(e)}"
         )
 
+@router.post("/predict-mastery", response_model=MasteryPredictionResponse, summary="Predict student mastery probability of success")
+def predict_mastery(
+    request: MasteryPredictionRequest,
+    mastery_service: MasteryService = Depends(get_mastery_service)
+):
+    try:
+        return mastery_service.predict_mastery(request)
+    except Exception as e:
+        logger.error(f"Error predicting mastery: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to predict mastery: {str(e)}"
+        )
+
 @router.post("/predict-root-cause", response_model=RootCausePredictionResponse, summary="Predict Root Cause with Confidence Calibration")
 def predict_root_cause(
     request: RootCausePredictionRequest,
     root_cause_service: RootCauseService = Depends(get_root_cause_service)
 ):
-    """
-    Predicts underlying root cause using Random Forest Pipeline + Confidence Calibration layer.
-    """
     try:
         return root_cause_service.predict_root_cause(request)
     except Exception as e:
@@ -79,23 +87,23 @@ def predict_root_cause(
 @router.get("/model-info", response_model=ModelInfoResponse, summary="Retrieve AI Pipeline metadata")
 def model_info(
     error_service: ErrorClassifierService = Depends(get_error_classifier_service),
+    mastery_service: MasteryService = Depends(get_mastery_service),
     root_cause_service: RootCauseService = Depends(get_root_cause_service)
 ):
-    """
-    Returns metadata about deployed Error Classifier, Root Cause Model, and Confidence Calibrator.
-    """
     try:
         err_info = error_service.get_model_info()
+        mastery_info = mastery_service.get_model_info()
         rc_info = root_cause_service.get_model_info()
 
         return ModelInfoResponse(
             error_classifier=err_info,
+            mastery_model=mastery_info,
             root_cause_model=rc_info.get("root_cause_model"),
             confidence_calibration=rc_info.get("confidence_calibrator"),
             model_name="MindTrace Mathematics AI Diagnostic Pipeline V1",
             version="1.0.0",
-            algorithm="TF-IDF + Logistic Regression (Error) & Random Forest + Platt Calibration (Root Cause)",
-            dataset="MindTrace Root Cause Dataset V1"
+            algorithm="TF-IDF + Logistic Regression (Error), XGBoost (Mastery), Random Forest + Platt Calibration (Root Cause)",
+            dataset="MAP & ASSISTments & MindTrace Root Cause Dataset V1"
         )
     except Exception as e:
         logger.error(f"Error fetching model info: {e}", exc_info=True)
@@ -109,12 +117,9 @@ def analyze_attempt(
     request: AttemptAnalysisRequest,
     error_service: ErrorClassifierService = Depends(get_error_classifier_service),
     concept_service: ConceptEngineService = Depends(get_concept_engine_service),
+    mastery_service: MasteryService = Depends(get_mastery_service),
     root_cause_service: RootCauseService = Depends(get_root_cause_service)
 ):
-    """
-    Complete MindTrace AI pipeline:
-    Student Attempt -> Error Classifier -> Concept Engine -> Student History -> Feature Builder -> Root Cause Model -> Confidence Calibration -> Recommendation Engine
-    """
     try:
         # Step 1: Error Classification
         err_req = ErrorClassificationRequest(
@@ -133,7 +138,14 @@ def analyze_attempt(
             error_type=err_res.error_type
         )
 
-        # Step 3: Root Cause Prediction & Confidence Calibration
+        # Step 3: Mastery Model Prediction
+        mastery_req = MasteryPredictionRequest(
+            student_id=request.student_id,
+            concept=concept_res.concept
+        )
+        mastery_res = mastery_service.predict_mastery(mastery_req)
+
+        # Step 4: Root Cause Prediction & Confidence Calibration
         rc_req = RootCausePredictionRequest(
             student_id=request.student_id,
             subject=request.subject,
@@ -144,13 +156,14 @@ def analyze_attempt(
             error_type=err_res.error_type,
             concept=concept_res.concept,
             error_confidence=err_res.confidence,
-            concept_confidence=concept_res.confidence
+            concept_confidence=concept_res.confidence,
+            concept_mastery=mastery_res.mastery
         )
         rc_res = root_cause_service.predict_root_cause(rc_req)
 
-        # Step 4: Simple Recommendation Engine Mapping
+        # Step 5: Recommendation Engine Mapping
         rec_action = f"Remediate {rc_res.root_cause.replace('_', ' ').title()}"
-        rec_reason = f"Identified {err_res.error_type} in {concept_res.concept} driven by {rc_res.root_cause} with {rc_res.calibrated_probability*100:.1f}% calibrated confidence."
+        rec_reason = f"Identified {err_res.error_type} in {concept_res.concept} driven by {rc_res.root_cause} with {rc_res.calibrated_probability*100:.1f}% calibrated confidence (Mastery: {mastery_res.mastery*100:.1f}%)."
         suggested = concept_res.prerequisites if concept_res.prerequisites else [concept_res.concept]
 
         rec_detail = RecommendationDetail(
@@ -158,6 +171,18 @@ def analyze_attempt(
             target_concept=concept_res.concept,
             reasoning=rec_reason,
             suggested_practice_topics=suggested
+        )
+
+        err_detail = ErrorDetail(
+            type=err_res.error_type,
+            confidence=round(err_res.confidence, 4)
+        )
+
+        mastery_detail = MasteryDetail(
+            concept=concept_res.concept,
+            mastery=mastery_res.mastery,
+            probability_of_success=mastery_res.probability_of_success,
+            trend=mastery_res.trend
         )
 
         return AttemptAnalysisResponse(
@@ -170,14 +195,13 @@ def analyze_attempt(
             root_cause_probability=rc_res.calibrated_probability,
             raw_root_cause_probability=rc_res.raw_probability,
             calibration_method=rc_res.calibration_method,
-            error_detail=ErrorDetail(
-                type=err_res.error_type,
-                confidence=round(err_res.confidence, 4)
-            ),
+            error=err_detail,
+            error_detail=err_detail,
             concept_detail=ConceptDetail(
                 name=concept_res.concept,
                 confidence=round(concept_res.confidence, 4)
             ),
+            mastery=mastery_detail,
             root_cause_detail=RootCauseDetail(
                 root_cause=rc_res.root_cause,
                 calibrated_probability=rc_res.calibrated_probability,

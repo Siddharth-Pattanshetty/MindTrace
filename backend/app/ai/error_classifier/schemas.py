@@ -13,6 +13,7 @@ class ErrorClassificationResponse(BaseModel):
 
 class ModelInfoResponse(BaseModel):
     error_classifier: Optional[Dict[str, Any]] = None
+    mastery_model: Optional[Dict[str, Any]] = None
     root_cause_model: Optional[Dict[str, Any]] = None
     confidence_calibration: Optional[Dict[str, Any]] = None
     model_name: Optional[str] = "MindTrace Complete AI Diagnostic Suite"

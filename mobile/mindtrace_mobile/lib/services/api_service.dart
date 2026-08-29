@@ -166,6 +166,43 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> analyzeAttempt({
+    required String question,
+    required String studentAnswer,
+    String? correctAnswer,
+    String? workEvidence,
+    String? studentId = "student_001",
+    String subject = "MATHEMATICS",
+  }) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/ai/analyze-attempt"),
+      headers: _headers,
+      body: jsonEncode({
+        "student_id": studentId,
+        "subject": subject,
+        "question": question,
+        "correct_answer": correctAnswer,
+        "student_answer": studentAnswer,
+        "work_evidence": workEvidence ?? "",
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Failed to analyze attempt: ${response.body}");
+    }
+  }
+
+  Future<Map<String, dynamic>> getModelInfo() async {
+    final response = await http.get(Uri.parse("$baseUrl/ai/model-info"), headers: _headers);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Failed to fetch model info");
+    }
+  }
+
   Future<Map<String, dynamic>> getProgress() async {
     final response = await http.get(Uri.parse("$baseUrl/progress"), headers: _headers);
     if (response.statusCode == 200) {
