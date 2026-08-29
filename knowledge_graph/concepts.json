@@ -1,0 +1,173 @@
+[
+  {
+    "name": "Linear Equations",
+    "description": "Solving single-variable or multi-variable linear algebraic equations.",
+    "subject": "Mathematics",
+    "domain": "Algebra",
+    "topic": "Linear Equations",
+    "subtopic": "Single Variable Equations",
+    "difficulty": "beginner"
+  },
+  {
+    "name": "Quadratic Equations",
+    "description": "Solving quadratic equations using standard formula, square roots, or factoring.",
+    "subject": "Mathematics",
+    "domain": "Algebra",
+    "topic": "Quadratic Equations",
+    "subtopic": "Algebraic Methods",
+    "difficulty": "intermediate"
+  },
+  {
+    "name": "Polynomial Operations",
+    "description": "Addition, subtraction, multiplication, and expansion of polynomial terms.",
+    "subject": "Mathematics",
+    "domain": "Algebra",
+    "topic": "Polynomials",
+    "subtopic": "Polynomial Operations",
+    "difficulty": "beginner"
+  },
+  {
+    "name": "Factor Pairs",
+    "description": "Finding pair factors of integer numbers and algebraic expressions.",
+    "subject": "Mathematics",
+    "domain": "Algebra",
+    "topic": "Polynomials",
+    "subtopic": "Factorization",
+    "difficulty": "beginner"
+  },
+  {
+    "name": "Linear Factorization",
+    "description": "Factoring linear terms by extracting common factors.",
+    "subject": "Mathematics",
+    "domain": "Algebra",
+    "topic": "Polynomials",
+    "subtopic": "Factorization",
+    "difficulty": "beginner"
+  },
+  {
+    "name": "Quadratic Factorization",
+    "description": "Factoring quadratic expressions into two linear factors by identifying appropriate factor pairs.",
+    "subject": "Mathematics",
+    "domain": "Algebra",
+    "topic": "Polynomials",
+    "subtopic": "Factorization",
+    "difficulty": "intermediate"
+  },
+  {
+    "name": "Factor Theorem",
+    "description": "Using factor theorem to establish linear factors of polynomials.",
+    "subject": "Mathematics",
+    "domain": "Algebra",
+    "topic": "Polynomials",
+    "subtopic": "Factor Theorem",
+    "difficulty": "intermediate"
+  },
+  {
+    "name": "Remainder Theorem",
+    "description": "Calculating polynomial remainders when dividing by linear divisors.",
+    "subject": "Mathematics",
+    "domain": "Algebra",
+    "topic": "Polynomials",
+    "subtopic": "Remainder Theorem",
+    "difficulty": "intermediate"
+  },
+  {
+    "name": "Fractions",
+    "description": "Operations, simplification, and equivalent representations of rational numbers and fractions.",
+    "subject": "Mathematics",
+    "domain": "Arithmetic",
+    "topic": "Fractions",
+    "subtopic": "Rational Operations",
+    "difficulty": "beginner"
+  },
+  {
+    "name": "Percentages",
+    "description": "Calculating percent increase, decrease, interest, and ratios out of 100.",
+    "subject": "Mathematics",
+    "domain": "Arithmetic",
+    "topic": "Percentages",
+    "subtopic": "Proportional Calculations",
+    "difficulty": "beginner"
+  },
+  {
+    "name": "Ratios",
+    "description": "Understanding proportions and relationships between two quantities.",
+    "subject": "Mathematics",
+    "domain": "Arithmetic",
+    "topic": "Ratios",
+    "subtopic": "Proportions",
+    "difficulty": "beginner"
+  },
+  {
+    "name": "Proportions",
+    "description": "Solving direct and inverse proportion equations.",
+    "subject": "Mathematics",
+    "domain": "Arithmetic",
+    "topic": "Proportions",
+    "subtopic": "Proportional Reasoning",
+    "difficulty": "beginner"
+  },
+  {
+    "name": "Triangles",
+    "description": "Properties, angles, area, and Pythagorean theorem applied to triangles.",
+    "subject": "Mathematics",
+    "domain": "Geometry",
+    "topic": "Triangles",
+    "subtopic": "Planar Geometry",
+    "difficulty": "intermediate"
+  },
+  {
+    "name": "Circles",
+    "description": "Circumference, area, arc length, radius, diameter, and chord geometry of circles.",
+    "subject": "Mathematics",
+    "domain": "Geometry",
+    "topic": "Circles",
+    "subtopic": "Planar Geometry",
+    "difficulty": "intermediate"
+  },
+  {
+    "name": "Coordinate Geometry",
+    "description": "Distance formula, midpoint formula, slope, and line equations in Cartesian coordinates.",
+    "subject": "Mathematics",
+    "domain": "Geometry",
+    "topic": "Coordinate Geometry",
+    "subtopic": "Analytic Geometry",
+    "difficulty": "intermediate"
+  },
+  {
+    "name": "Mean",
+    "description": "Calculating the arithmetic average of a dataset.",
+    "subject": "Mathematics",
+    "domain": "Statistics",
+    "topic": "Mean",
+    "subtopic": "Central Tendency",
+    "difficulty": "beginner"
+  },
+  {
+    "name": "Median",
+    "description": "Determining the middle value of an ordered numerical dataset.",
+    "subject": "Mathematics",
+    "domain": "Statistics",
+    "topic": "Median",
+    "subtopic": "Central Tendency",
+    "difficulty": "beginner"
+  },
+  {
+    "name": "Mode",
+    "description": "Finding the most frequently occurring score or observation in a dataset.",
+    "subject": "Mathematics",
+    "domain": "Statistics",
+    "topic": "Mode",
+    "subtopic": "Central Tendency",
+    "difficulty": "beginner"
+  },
+  {
+    "name": "Probability",
+    "description": "Calculating odds, independent/dependent event probabilities, and theoretical outcomes.",
+    "subject": "Mathematics",
+    "domain": "Statistics",
+    "topic": "Probability",
+    "subtopic": "Event Analysis",
+    "difficulty": "intermediate"
+  }
+]

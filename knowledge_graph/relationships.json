@@ -1,0 +1,128 @@
+[
+  {
+    "from": "Mathematics",
+    "from_label": "Subject",
+    "relationship": "CONTAINS",
+    "to": "Algebra",
+    "to_label": "Domain"
+  },
+  {
+    "from": "Mathematics",
+    "from_label": "Subject",
+    "relationship": "CONTAINS",
+    "to": "Arithmetic",
+    "to_label": "Domain"
+  },
+  {
+    "from": "Mathematics",
+    "from_label": "Subject",
+    "relationship": "CONTAINS",
+    "to": "Geometry",
+    "to_label": "Domain"
+  },
+  {
+    "from": "Mathematics",
+    "from_label": "Subject",
+    "relationship": "CONTAINS",
+    "to": "Statistics",
+    "to_label": "Domain"
+  },
+  {
+    "from": "Algebra",
+    "from_label": "Domain",
+    "relationship": "CONTAINS",
+    "to": "Polynomials",
+    "to_label": "Topic"
+  },
+  {
+    "from": "Polynomials",
+    "from_label": "Topic",
+    "relationship": "CONTAINS",
+    "to": "Factorization",
+    "to_label": "Subtopic"
+  },
+  {
+    "from": "Factorization",
+    "from_label": "Subtopic",
+    "relationship": "CONTAINS",
+    "to": "Quadratic Factorization",
+    "to_label": "Concept"
+  },
+  {
+    "from": "Quadratic Factorization",
+    "from_label": "Concept",
+    "relationship": "REQUIRES",
+    "to": "Factor Pairs",
+    "to_label": "Concept"
+  },
+  {
+    "from": "Quadratic Factorization",
+    "from_label": "Concept",
+    "relationship": "REQUIRES",
+    "to": "Polynomial Operations",
+    "to_label": "Concept"
+  },
+  {
+    "from": "Quadratic Factorization",
+    "from_label": "Concept",
+    "relationship": "RELATED_TO",
+    "to": "Quadratic Equations",
+    "to_label": "Concept"
+  },
+  {
+    "from": "Quadratic Factorization",
+    "from_label": "Concept",
+    "relationship": "COMMON_ERROR",
+    "to": "CONCEPT_ERROR",
+    "to_label": "ErrorType"
+  },
+  {
+    "from": "Quadratic Factorization",
+    "from_label": "Concept",
+    "relationship": "COMMON_ERROR",
+    "to": "CALCULATION_ERROR",
+    "to_label": "ErrorType"
+  },
+  {
+    "from": "Quadratic Factorization",
+    "from_label": "Concept",
+    "relationship": "CAN_BE_REMEDIATED_BY",
+    "to": "Quadratic Factorization Practice",
+    "to_label": "Remediation"
+  },
+  {
+    "from": "Quadratic Equations",
+    "from_label": "Concept",
+    "relationship": "REQUIRES",
+    "to": "Linear Equations",
+    "to_label": "Concept"
+  },
+  {
+    "from": "Linear Factorization",
+    "from_label": "Concept",
+    "relationship": "PREREQUISITE_OF",
+    "to": "Quadratic Factorization",
+    "to_label": "Concept"
+  },
+  {
+    "from": "Percentages",
+    "from_label": "Concept",
+    "relationship": "REQUIRES",
+    "to": "Fractions",
+    "to_label": "Concept"
+  },
+  {
+    "from": "Proportions",
+    "from_label": "Concept",
+    "relationship": "REQUIRES",
+    "to": "Ratios",
+    "to_label": "Concept"
+  },
+  {
+    "from": "Coordinate Geometry",
+    "from_label": "Concept",
+    "relationship": "REQUIRES",
+    "to": "Linear Equations",
+    "to_label": "Concept"
+  }
+]
