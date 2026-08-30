@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import '../services/api_service.dart';
 import 'autopsy_screen.dart';
 
@@ -14,12 +15,52 @@ class _UploadScreenState extends State<UploadScreen> {
   final TextEditingController _titleController = TextEditingController(text: "Mathematics Diagnostic Exam");
   final TextEditingController _textController = TextEditingController();
   
+  String? _selectedFilePath;
+  String? _selectedFileName;
+  int? _selectedFileSize;
+
   bool _isProcessing = false;
   String _currentStep = "";
   double _progress = 0.0;
   String? _errorMsg;
 
+  Future<void> _pickFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        setState(() {
+          _selectedFilePath = result.files.single.path;
+          _selectedFileName = result.files.single.name;
+          _selectedFileSize = result.files.single.size;
+          _errorMsg = null;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMsg = "Failed to select file: ${e.toString()}";
+      });
+    }
+  }
+
+  void _clearSelectedFile() {
+    setState(() {
+      _selectedFilePath = null;
+      _selectedFileName = null;
+      _selectedFileSize = null;
+    });
+  }
+
   Future<void> _startProcessing() async {
+    if ((_selectedFilePath == null || _selectedFilePath!.isEmpty) && _textController.text.trim().isEmpty) {
+      setState(() {
+        _errorMsg = "Please tap above to pick an exam file (PDF/Image) or paste exam text before processing.";
+      });
+      return;
+    }
+
     setState(() {
       _isProcessing = true;
       _errorMsg = null;
@@ -43,7 +84,8 @@ class _UploadScreenState extends State<UploadScreen> {
       final res = await _apiService.uploadExam(
         _titleController.text,
         "Mathematics",
-        _textController.text
+        _textController.text,
+        filePath: _selectedFilePath,
       );
 
       setState(() {
@@ -64,6 +106,12 @@ class _UploadScreenState extends State<UploadScreen> {
         _errorMsg = "Exam processing failed: ${e.toString().replaceAll('Exception:', '')}";
       });
     }
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return "$bytes B";
+    if (bytes < 1024 * 1024) return "${(bytes / 1024).toStringAsFixed(1)} KB";
+    return "${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB";
   }
 
   @override
@@ -101,27 +149,69 @@ class _UploadScreenState extends State<UploadScreen> {
             ),
             const SizedBox(height: 16),
             
-            // Camera / Image Upload Dropzone Simulation
+            // Image / PDF Upload Dropzone with FilePicker
             GestureDetector(
-              onTap: _isProcessing ? null : _startProcessing,
+              onTap: _isProcessing ? null : _pickFile,
               child: Container(
-                height: 160,
+                constraints: const BoxConstraints(minHeight: 160),
                 width: double.infinity,
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E293B),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.cyanAccent.withOpacity(0.5), style: BorderStyle.solid),
+                  border: Border.all(
+                    color: _selectedFilePath != null ? Colors.greenAccent : Colors.cyanAccent.withOpacity(0.5),
+                    width: 1.5,
+                  ),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.cloud_upload_outlined, size: 48, color: Colors.cyanAccent),
-                    SizedBox(height: 8),
-                    Text("Tap to Upload Exam Paper / Camera Capture", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 4),
-                    Text("Supports Image, PDF, or Handwritten Sheets", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                  ],
-                ),
+                child: _selectedFilePath != null
+                    ? Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.check_circle_outline, size: 44, color: Colors.greenAccent),
+                          const SizedBox(height: 8),
+                          Text(
+                            _selectedFileName ?? "Selected File",
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                            textAlign: TextAlign.center,
+                          ),
+                          if (_selectedFileSize != null) ...[
+                            const SizedBox(height: 4),
+                            Text(_formatFileSize(_selectedFileSize!), style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                          ],
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Colors.cyanAccent),
+                                  foregroundColor: Colors.cyanAccent,
+                                ),
+                                onPressed: _isProcessing ? null : _pickFile,
+                                icon: const Icon(Icons.folder_open, size: 18),
+                                label: const Text("Change File"),
+                              ),
+                              const SizedBox(width: 12),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                onPressed: _isProcessing ? null : _clearSelectedFile,
+                                tooltip: "Remove file",
+                              )
+                            ],
+                          )
+                        ],
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.cloud_upload_outlined, size: 48, color: Colors.cyanAccent),
+                          SizedBox(height: 8),
+                          Text("Tap to Select Exam Paper (PDF / Image)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text("Supports PDF, PNG, JPG, or Handwritten Scans", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                        ],
+                      ),
               ),
             ),
 
@@ -172,3 +262,4 @@ class _UploadScreenState extends State<UploadScreen> {
     );
   }
 }
+
